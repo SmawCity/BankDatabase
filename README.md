@@ -3,7 +3,7 @@
 I created this program to become more familiar with integrating SQL into Python. In this case, it serves the function of using that relational database to act as a fictional bank that deals in coins and assets. 
 
 
-[Software Demo Video]https://youtu.be/IJjs-fHfViU)
+[Software Demo Video](https://youtu.be/IJjs-fHfViU)
 
 # Relational Database
 
