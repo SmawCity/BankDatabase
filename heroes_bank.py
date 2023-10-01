@@ -45,9 +45,9 @@ class Menu:
     print("Welcome to the Heroes' Bank!")
     option = ""
     id = 0
-    while option != "Q":
-        print("\nSelect one of the following menu options or type 'Q' to quit:\n1. Create Account \n2. View Account \n3. Desposit \n4. Withdrawal")
-        option = input("Your Choice: ").upper()
+    while option != "5":
+        print("\nSelect one of the following menu options:\n1. Create Account \n2. View Account \n3. Desposit \n4. Withdrawal \n5. Quit")
+        option = input("Your Choice: ")
 
         if option == "1":
             # Create a new account by assigning an account ID and getting the customer's name
@@ -72,75 +72,122 @@ class Menu:
             # Retrieve customer name and coinage
             cur.execute(f"SELECT name, coin FROM customer WHERE customer_id = {id}")
             customer_data = cur.fetchone()
+            if customer_data is None:
+                print('There is no account under that ID.')
+            else:
+                # Retrieve assets and their values
+                cur.execute(f"SELECT name, value FROM asset WHERE customer_id = {id}")
+                assets = cur.fetchall()
     
-            # Retrieve assets and their values
-            cur.execute(f"SELECT name, value FROM asset WHERE customer_id = {id}")
-            assets = cur.fetchall()
+                # Calculate the total value of assets
+                cur.execute(f"SELECT SUM(value) FROM asset WHERE customer_id = {id}")
+                asset_value = cur.fetchone()[0]
+                # Get value of coin and assets combined
+                if asset_value is None:
+                    total_value = customer_data[1]
+                else:
+                    total_value = asset_value + customer_data[1]
     
-            # Calculate the total value of assets
-            cur.execute(f"SELECT SUM(value) FROM asset WHERE customer_id = {id}")
-            asset_value = cur.fetchone()[0]
-            # Get value of coin and assets combined
-            total_value = asset_value + customer_data[1]
-    
-            # Print the information
-            print(f"\nName: {customer_data[0]}")
-            print(f"Coin: {customer_data[1]}")
-            print("Assets:")
-            for asset in assets:
-                print(f"- {asset[0]}: {asset[1]}")
-            print(f"Asset Value: {asset_value}")
-            print(f"Total Account Value: {total_value}")
+                # Print the information
+                print(f"\nName: {customer_data[0]}")
+                print(f"Coin: {customer_data[1]}")
+                
+                if asset_value is None:
+                    print(f"Assets: {asset_value}")
+                else:
+                    print("Assets:")
+                    for asset in assets:
+                        print(f"- {asset[0]}: {asset[1]}")
+                print(f"Asset Value: {asset_value}")
+                print(f"Total Account Value: {total_value}")
 
         elif option == "3":
+            deposit_option = 0
             # Deposit an asset into the customer's account
-            id = input("What is your account id? ")
-            # Retrieve the maximum asset_id
-            cur.execute("SELECT MAX(asset_id) FROM asset")
-            max_asset_id = cur.fetchone()[0]
-    
-            # Check if max_asset_id is None (empty table), and set it to 0 if needed
-            if max_asset_id is None:
-                max_asset_id = 0
-            asset_id = max_asset_id + 1
-    
-            name = input("What asset would you like to deposit? ")
-            value = input("What is the asset worth? ")
-    
-            # Use placeholders in the SQL query to safely insert values
-            insert_query = cur.execute("INSERT INTO asset (asset_id, name, value, customer_id) VALUES (?, ?, ?, ?)",
-                               (asset_id, name, value, id))
-    
-            con.commit()
-            print(f"Your {name} has been deposited!")
+            while deposit_option != "3":
+                print("\nDeposit Menu:")
+                print("1. Deposit Coins")
+                print("2. Deposit Asset")
+                print("3. Back to Main Menu")
+                deposit_option = input("Select an option: ")
+        
+                if deposit_option == "1":
+                    # Deposit coins into the customer's account
+                    id = input("What is your account id? ")
+                    coins_to_deposit = float(input("How many coins would you like to deposit? "))
+            
+                    # Retrieve the current coin balance
+                    cur.execute(f"SELECT coin FROM customer WHERE customer_id = {id}")
+                    current_coin_balance = cur.fetchone()[0]
+            
+                    # Update the coin balance
+                    new_coin_balance = current_coin_balance + coins_to_deposit
+                    cur.execute(f"UPDATE customer SET coin = {new_coin_balance} WHERE customer_id = {id}")
+                    con.commit()
+                    print(f"You have deposited {coins_to_deposit} coins. Your new coin balance is {new_coin_balance}.")
+        
+                elif deposit_option == "2":
+                    # Deposit assets into the customer's account
+                    id = input("What is your account id? ")
+                    asset_name = input("Enter the name of the asset you want to deposit: ")
+                    asset_value = float(input("Enter the value of the asset: "))
+            
+                    cur.execute("SELECT MAX(asset_id) FROM asset")
+                    max_asset_id = cur.fetchone()[0]
+            
+                    # Check if max_asset_id is None (empty table), and set it to 0 if needed
+                    if max_asset_id is None:
+                       max_asset_id = 0
+            
+                    # Calculate the new asset_id
+                    asset_id = max_asset_id + 1
+            
+                    # Insert the asset into the "asset" table
+                    insert_query = cur.execute("INSERT INTO asset (asset_id, name, value, customer_id) VALUES (?, ?, ?, ?)", (asset_id, asset_name, asset_value, id))
 
         elif option == "4":
-            # Withdraw an asset from the customer's account
-            id = input("What is your account id? ")
-
-            # Retrieve assets and their IDs and values
-            cur.execute(f"SELECT asset_id, name, value FROM asset WHERE customer_id = {id}")
-            assets = cur.fetchall()
-    
-            if not assets:
-                print("No assets to withdraw.")
-            else:
-                print("Available Assets:")
-            for asset in assets:
-                print(f"ID: {asset[0]}, Name: {asset[1]}, Value: {asset[2]}")
+            withdrawal_option = 0
+            # Withdraw an asset or coins from the customer's account
+            while withdrawal_option != "3":
+                print("\nWithdrawal Menu:")
+                print("1. Withdraw Coins")
+                print("2. Withdraw Asset")
+                print("3. Back to Main Menu")
+                withdrawal_option = input("Select an option: ")
         
-            withdrawn_asset_id = input("\nEnter the ID of the asset you would like to withdraw: ")
+                if withdrawal_option == "1":
+                    # Withdraw coins from the customer's account
+                    id = input("What is your account id? ")
+                    coins_to_withdraw = float(input("How many coins would you like to withdraw? "))
+            
+                    # Retrieve the current coin balance
+                    cur.execute(f"SELECT coin FROM customer WHERE customer_id = {id}")
+                    current_coin_balance = cur.fetchone()[0]
+            
+                    if current_coin_balance >= coins_to_withdraw:
+                        # Update the coin balance
+                        new_coin_balance = current_coin_balance - coins_to_withdraw
+                        cur.execute(f"UPDATE customer SET coin = {new_coin_balance} WHERE customer_id = {id}")
+                        con.commit()
+                        print(f"You have withdrawn {coins_to_withdraw} coins. Your new coin balance is {new_coin_balance}.")
+                    else:
+                        print("Insufficient coins in your account.")
         
-            # Check if the entered ID is valid
-            asset_ids = [str(asset[0]) for asset in assets]
-            if withdrawn_asset_id not in asset_ids:
-                print("Invalid asset ID.")
-            else:
-                # Delete the selected asset
-                cur.execute(f"DELETE FROM asset WHERE asset_id = {withdrawn_asset_id}")
-                print("Asset withdrawn successfully.")
-    
-            con.commit()
+                elif withdrawal_option == "2":
+                    # Withdraw assets from the customer's account
+                    id = input("What is your account id? ")
+                    asset_id = input("Enter the ID of the asset you want to withdraw: ")
+            
+                    # Check if the asset exists and belongs to the customer
+                    cur.execute(f"SELECT asset_id FROM asset WHERE asset_id = {asset_id} AND customer_id = {id}")
+                    asset_exists = cur.fetchone()
+            
+                    if asset_exists:
+                        cur.execute(f"DELETE FROM asset WHERE asset_id = {asset_id}")
+                        con.commit()
+                        print(f"Asset {asset_id} has been withdrawn from your account.")
+                    else:
+                        print(f"Asset {asset_id} does not exist in this account.")
 
 
 con.commit()
